@@ -25,7 +25,7 @@ const els = {
     btnCreatePlaylist: document.getElementById('btn-create-playlist'),
     playlistView: document.getElementById('active-playlist-view'),
     playlistTracks: document.getElementById('playlist-track-list'),
-    playlistNav: document.getElementById('playlist-list'), // The UL
+    playlistNav: document.getElementById('playlist-list'),
     audio: document.getElementById('audio-element'),
     canvas: document.getElementById('visualizer'),
     npTitle: document.getElementById('np-title'),
@@ -101,9 +101,12 @@ async function loadLibrary() {
 async function saveFiles(files) {
     const promises = Array.from(files).map(file => {
         return new Promise((resolve, reject) => {
+            // Robust check for mime type, sometimes missing on mobile uploads
+            const fileType = file.type || 'audio/mp3'; 
+            
             const track = {
                 name: file.name.replace(/\.[^/.]+$/, ""),
-                type: file.type,
+                type: fileType,
                 size: file.size,
                 data: file, // Store File/Blob
                 addedAt: Date.now()
@@ -122,12 +125,10 @@ async function saveFiles(files) {
 
 /**
  * DELETION LOGIC (Global)
- * Removes from Tracks store AND all Playlists
  */
 async function deleteTrack(trackId) {
     if (!confirm("Permanently delete this track from library and all playlists?")) return;
 
-    // 1. Stop playback if deleting current track
     if (state.currentTrack && state.currentTrack.id === trackId) {
         els.audio.pause();
         els.audio.src = "";
@@ -136,14 +137,12 @@ async function deleteTrack(trackId) {
         state.isPlaying = false;
     }
 
-    // 2. Remove from 'tracks' store
     await new Promise((resolve) => {
         dbAction('tracks', 'readwrite', (store) => {
             store.delete(trackId).onsuccess = () => resolve();
         });
     });
 
-    // 3. Remove from all playlists
     await new Promise((resolve) => {
         dbAction('playlists', 'readwrite', (store) => {
             const req = store.openCursor();
@@ -163,15 +162,14 @@ async function deleteTrack(trackId) {
         });
     });
 
-    // 4. Update UI
     updateUIAfterDelete();
 }
 
 function updateUIAfterDelete() {
-    loadLibrary(); // Refreshes main list
-    loadPlaylists(); // Refreshes playlist counts
+    loadLibrary();
+    loadPlaylists();
     if (state.activePlaylistId) {
-        openPlaylist(state.activePlaylistId); // Refreshes active playlist view
+        openPlaylist(state.activePlaylistId);
     }
 }
 
@@ -322,7 +320,6 @@ function renderLibrary(tracks) {
         const li = document.createElement('li');
         li.className = 'track-item';
         
-        // Structure: Main info (left), Actions (right)
         li.innerHTML = `
             <div class="track-main">
                 <div class="track-name">${track.name}</div>
@@ -335,7 +332,6 @@ function renderLibrary(tracks) {
             </div>
         `;
         
-        // Logic
         li.querySelector('.play-btn').onclick = (e) => {
             e.stopPropagation();
             playQueue(tracks, tracks.indexOf(track));
@@ -391,13 +387,11 @@ function renderPlaylistTracks(tracks, playlistId) {
             playQueue(tracks, index);
         };
 
-        // Remove from Playlist button (Soft delete)
         li.querySelector('.danger').onclick = (e) => {
             e.stopPropagation();
             removeFromPlaylist(playlistId, track.id);
         };
 
-        // Delete from Disk button (Hard delete)
         li.querySelector('.delete-btn').onclick = (e) => {
             e.stopPropagation();
             deleteTrack(track.id);
@@ -423,7 +417,6 @@ function initAudioContext() {
         
         drawVisualizer();
     }
-    // Ensure we resume context if browser suspended it
     if (state.audioCtx.state === 'suspended') {
         state.audioCtx.resume();
     }
@@ -438,7 +431,6 @@ function playQueue(queue, startIndex) {
 
 function loadTrack(track) {
     if (!track) return;
-    
     state.currentTrack = track;
     
     if (els.audio.src) URL.revokeObjectURL(els.audio.src);
@@ -471,7 +463,7 @@ function playPrev() {
 }
 
 /**
- * MEDIA SESSION (Background Audio Support)
+ * MEDIA SESSION
  */
 function updateMediaSession() {
     if ('mediaSession' in navigator) {
@@ -505,10 +497,6 @@ function drawVisualizer() {
 
     function render() {
         requestAnimationFrame(render);
-        // We do NOT stop the loop on pause, so the visualizer 
-        // settles naturally or stays ready, but we could pause it to save battery.
-        // For simplicity and robustness, we keep it running or check audio state.
-        
         state.analyser.getByteFrequencyData(dataArray);
 
         ctx.fillStyle = '#000';
@@ -546,9 +534,7 @@ els.audio.addEventListener('ended', playNext);
 els.btnNext.addEventListener('click', playNext);
 els.btnPrev.addEventListener('click', playPrev);
 
-// Prevent default pause behaviors if any exist in browser
 els.audio.addEventListener('pause', (e) => {
-    // We only update state, we don't force pause logic unless user initiated
     state.isPlaying = false;
 });
 
@@ -557,3 +543,5 @@ window.addEventListener('DOMContentLoaded', async () => {
     await loadLibrary();
     await loadPlaylists();
 });
+
+
