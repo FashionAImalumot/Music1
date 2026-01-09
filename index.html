@@ -25,9 +25,10 @@
         <section class="panel library-panel">
             <div class="panel-header">
                 <h2>Library</h2>
+                <!-- UPDATED: Explicit extensions force iOS 'Files' app to open -->
                 <label for="file-upload" class="btn primary-btn">
                     + Upload
-                    <input type="file" id="file-upload" accept="audio/*" multiple hidden>
+                    <input type="file" id="file-upload" accept="audio/*, .mp3, .wav, .m4a, .aac, .ogg, .flac, .webm, .opus" multiple hidden>
                 </label>
             </div>
             <div class="storage-hint">Tracks stored locally</div>
@@ -84,7 +85,7 @@
         <p>Install as PWA for best experience</p>
     </footer>
 
-    <!-- MODAL OVERLAY (Must be outside main/footer) -->
+    <!-- MODAL OVERLAY -->
     <div id="modal-overlay" class="hidden">
         <div class="modal">
             <h3>Add to Playlist</h3>
@@ -104,3 +105,5 @@
     </script>
 </body>
 </html>
+
+
