@@ -10,7 +10,7 @@ const state = {
     analyser: null,
     sourceNode: null,
     currentTrack: null,
-    queue: [], // Array of track objects
+    queue: [], 
     queueIndex: -1,
     isPlaying: false,
     activePlaylistId: null, // null means Library view
@@ -53,11 +53,9 @@ async function initDB() {
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
-            // Tracks Store: holds binary data
             if (!db.objectStoreNames.contains('tracks')) {
                 db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
             }
-            // Playlists Store: holds metadata and array of track IDs
             if (!db.objectStoreNames.contains('playlists')) {
                 db.createObjectStore('playlists', { keyPath: 'id', autoIncrement: true });
             }
@@ -79,7 +77,7 @@ function dbAction(storeName, mode, callback) {
 }
 
 /**
- * CORE FUNCTIONS: TRACKS
+ * CORE FUNCTIONS: TRACKS & DELETION
  */
 async function loadLibrary() {
     return new Promise((resolve) => {
@@ -107,7 +105,7 @@ async function saveFiles(files) {
                 name: file.name.replace(/\.[^/.]+$/, ""),
                 type: file.type,
                 size: file.size,
-                data: file, // Store File object (Blob) directly
+                data: file, // Store File/Blob
                 addedAt: Date.now()
             };
             dbAction('tracks', 'readwrite', (store) => {
@@ -120,6 +118,61 @@ async function saveFiles(files) {
 
     await Promise.all(promises);
     loadLibrary();
+}
+
+/**
+ * DELETION LOGIC (Global)
+ * Removes from Tracks store AND all Playlists
+ */
+async function deleteTrack(trackId) {
+    if (!confirm("Permanently delete this track from library and all playlists?")) return;
+
+    // 1. Stop playback if deleting current track
+    if (state.currentTrack && state.currentTrack.id === trackId) {
+        els.audio.pause();
+        els.audio.src = "";
+        els.npTitle.textContent = "Select a track";
+        state.currentTrack = null;
+        state.isPlaying = false;
+    }
+
+    // 2. Remove from 'tracks' store
+    await new Promise((resolve) => {
+        dbAction('tracks', 'readwrite', (store) => {
+            store.delete(trackId).onsuccess = () => resolve();
+        });
+    });
+
+    // 3. Remove from all playlists
+    await new Promise((resolve) => {
+        dbAction('playlists', 'readwrite', (store) => {
+            const req = store.openCursor();
+            req.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const pl = cursor.value;
+                    if (pl.trackIds.includes(trackId)) {
+                        pl.trackIds = pl.trackIds.filter(id => id !== trackId);
+                        cursor.update(pl);
+                    }
+                    cursor.continue();
+                } else {
+                    resolve();
+                }
+            };
+        });
+    });
+
+    // 4. Update UI
+    updateUIAfterDelete();
+}
+
+function updateUIAfterDelete() {
+    loadLibrary(); // Refreshes main list
+    loadPlaylists(); // Refreshes playlist counts
+    if (state.activePlaylistId) {
+        openPlaylist(state.activePlaylistId); // Refreshes active playlist view
+    }
 }
 
 /**
@@ -188,10 +241,7 @@ function renamePlaylist(id) {
 }
 
 function addToPlaylist(trackId) {
-    // Show Modal
     els.modal.classList.remove('hidden');
-    
-    // Fetch playlists to populate modal
     dbAction('playlists', 'readonly', (store) => {
         const req = store.getAll();
         req.onsuccess = (e) => {
@@ -242,18 +292,15 @@ function openPlaylist(id) {
             els.playlistView.classList.remove('hidden');
             els.lblPlaylistName.textContent = playlist.name;
 
-            // Setup Header Buttons
             els.btnDeletePlaylist.onclick = () => deletePlaylist(id);
             els.btnRenamePlaylist.onclick = () => renamePlaylist(id);
             
-            // Get all tracks to filter
             dbAction('tracks', 'readonly', (tStore) => {
                 tStore.getAll().onsuccess = (evt) => {
                     const allTracks = evt.target.result;
-                    // Map IDs to track objects, maintaining order
                     const playlistTracks = playlist.trackIds
                         .map(tid => allTracks.find(t => t.id === tid))
-                        .filter(t => t); // remove undefined if track deleted
+                        .filter(t => t); 
 
                     renderPlaylistTracks(playlistTracks, playlist.id);
                     
@@ -274,26 +321,34 @@ function renderLibrary(tracks) {
     tracks.forEach(track => {
         const li = document.createElement('li');
         li.className = 'track-item';
+        
+        // Structure: Main info (left), Actions (right)
         li.innerHTML = `
-            <div class="track-info">
-                <div>${track.name}</div>
+            <div class="track-main">
+                <div class="track-name">${track.name}</div>
                 <div class="track-meta">${(track.size / 1024 / 1024).toFixed(2)} MB</div>
             </div>
-            <div>
-                <button class="icon-btn" title="Add to Playlist">+</button>
+            <div class="track-actions">
+                <button class="icon-btn play-btn" title="Play">▶</button>
+                <button class="icon-btn add-btn" title="Add to Playlist">+</button>
+                <button class="icon-btn delete-btn" title="Delete from Disk">✕</button>
             </div>
         `;
         
-        // Play click
-        li.querySelector('.track-info').onclick = () => {
-            // When playing from library, queue is ALL tracks
+        // Logic
+        li.querySelector('.play-btn').onclick = (e) => {
+            e.stopPropagation();
             playQueue(tracks, tracks.indexOf(track));
         };
 
-        // Add to playlist click
-        li.querySelector('button').onclick = (e) => {
+        li.querySelector('.add-btn').onclick = (e) => {
             e.stopPropagation();
             addToPlaylist(track.id);
+        };
+
+        li.querySelector('.delete-btn').onclick = (e) => {
+            e.stopPropagation();
+            deleteTrack(track.id);
         };
 
         els.libraryList.appendChild(li);
@@ -321,19 +376,31 @@ function renderPlaylistTracks(tracks, playlistId) {
         const li = document.createElement('li');
         li.className = 'track-item';
         li.innerHTML = `
-            <div class="track-info">
-                <div>${track.name}</div>
+            <div class="track-main">
+                <div class="track-name">${track.name}</div>
             </div>
-            <button class="icon-btn danger" title="Remove">×</button>
+            <div class="track-actions">
+                <button class="icon-btn play-btn" title="Play">▶</button>
+                <button class="icon-btn danger" title="Remove from Playlist">-</button>
+                <button class="icon-btn delete-btn" title="Delete from Disk">✕</button>
+            </div>
         `;
         
-        li.querySelector('.track-info').onclick = () => {
+        li.querySelector('.play-btn').onclick = (e) => {
+            e.stopPropagation();
             playQueue(tracks, index);
         };
 
-        li.querySelector('button').onclick = (e) => {
+        // Remove from Playlist button (Soft delete)
+        li.querySelector('.danger').onclick = (e) => {
             e.stopPropagation();
             removeFromPlaylist(playlistId, track.id);
+        };
+
+        // Delete from Disk button (Hard delete)
+        li.querySelector('.delete-btn').onclick = (e) => {
+            e.stopPropagation();
+            deleteTrack(track.id);
         };
         
         els.playlistTracks.appendChild(li);
@@ -341,7 +408,7 @@ function renderPlaylistTracks(tracks, playlistId) {
 }
 
 /**
- * AUDIO ENGINE & PLAYER LOGIC
+ * AUDIO ENGINE
  */
 function initAudioContext() {
     if (!state.audioCtx) {
@@ -350,14 +417,13 @@ function initAudioContext() {
         state.analyser = state.audioCtx.createAnalyser();
         state.analyser.fftSize = 256;
         
-        // Connect Audio Element to Analyser
-        // NOTE: We only do this once to avoid connection errors
         state.sourceNode = state.audioCtx.createMediaElementSource(els.audio);
         state.sourceNode.connect(state.analyser);
         state.analyser.connect(state.audioCtx.destination);
         
         drawVisualizer();
     }
+    // Ensure we resume context if browser suspended it
     if (state.audioCtx.state === 'suspended') {
         state.audioCtx.resume();
     }
@@ -375,10 +441,7 @@ function loadTrack(track) {
     
     state.currentTrack = track;
     
-    // Revoke old URL to save memory
-    if (els.audio.src) {
-        URL.revokeObjectURL(els.audio.src);
-    }
+    if (els.audio.src) URL.revokeObjectURL(els.audio.src);
 
     const fileUrl = URL.createObjectURL(track.data);
     els.audio.src = fileUrl;
@@ -393,16 +456,11 @@ function loadTrack(track) {
 
 function updatePlayerUI() {
     els.npTitle.textContent = state.currentTrack.name;
-    
-    // Update active class in lists
-    document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
-    // This is a naive highlight (highlights all instances of the track in UI)
-    // In a complex app, we'd match by ID within specific container context
 }
 
 function playNext() {
     if (state.queue.length === 0) return;
-    state.queueIndex = (state.queueIndex + 1) % state.queue.length; // Loop
+    state.queueIndex = (state.queueIndex + 1) % state.queue.length;
     loadTrack(state.queue[state.queueIndex]);
 }
 
@@ -413,16 +471,15 @@ function playPrev() {
 }
 
 /**
- * MEDIA SESSION API
+ * MEDIA SESSION (Background Audio Support)
  */
 function updateMediaSession() {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: state.currentTrack.name,
-            artist: 'Offline Player Library',
+            artist: 'Offline Player',
             album: state.activePlaylistId ? 'Playlist' : 'Library',
             artwork: [
-                { src: 'https://via.placeholder.com/96', sizes: '96x96', type: 'image/png' },
                 { src: 'https://via.placeholder.com/128', sizes: '128x128', type: 'image/png' },
             ]
         });
@@ -448,10 +505,10 @@ function drawVisualizer() {
 
     function render() {
         requestAnimationFrame(render);
-
-        // Optimization: stop drawing if paused to save battery
-        if (els.audio.paused) return; 
-
+        // We do NOT stop the loop on pause, so the visualizer 
+        // settles naturally or stays ready, but we could pause it to save battery.
+        // For simplicity and robustness, we keep it running or check audio state.
+        
         state.analyser.getByteFrequencyData(dataArray);
 
         ctx.fillStyle = '#000';
@@ -462,12 +519,9 @@ function drawVisualizer() {
         let x = 0;
 
         for (let i = 0; i < bufferLength; i++) {
-            barHeight = dataArray[i] / 2; // Scale down
-
-            // Gradient or solid color
+            barHeight = dataArray[i] / 2; 
             ctx.fillStyle = `rgb(${barHeight + 100}, 50, 150)`;
             ctx.fillRect(x, height - barHeight, barWidth, barHeight);
-
             x += barWidth + 1;
         }
     }
@@ -475,10 +529,9 @@ function drawVisualizer() {
 }
 
 /**
- * EVENT LISTENERS
+ * INIT & EVENTS
  */
 els.fileInput.addEventListener('change', (e) => saveFiles(e.target.files));
-
 els.btnCreatePlaylist.addEventListener('click', createPlaylist);
 
 els.btnClosePlaylist.addEventListener('click', () => {
@@ -490,11 +543,15 @@ els.btnClosePlaylist.addEventListener('click', () => {
 els.btnCloseModal.addEventListener('click', () => els.modal.classList.add('hidden'));
 
 els.audio.addEventListener('ended', playNext);
-
 els.btnNext.addEventListener('click', playNext);
 els.btnPrev.addEventListener('click', playPrev);
 
-// Initialize
+// Prevent default pause behaviors if any exist in browser
+els.audio.addEventListener('pause', (e) => {
+    // We only update state, we don't force pause logic unless user initiated
+    state.isPlaying = false;
+});
+
 window.addEventListener('DOMContentLoaded', async () => {
     await initDB();
     await loadLibrary();
