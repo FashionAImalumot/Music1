@@ -8,6 +8,8 @@
     --danger: #e91e63;
     --border-radius: 8px;
     --spacing: 16px;
+    /* Safe area variable for iPhone X+ */
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 * {
@@ -16,63 +18,65 @@
     padding: 0;
 }
 
+html {
+    height: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-primary);
-    height: 100vh;
+    /* Ensures body takes at least full screen, but expands for content */
+    min-height: 100%; 
     display: flex;
     flex-direction: column;
 }
 
 header {
     padding: var(--spacing);
+    /* Add top safe area padding */
+    padding-top: max(var(--spacing), env(safe-area-inset-top)); 
     background-color: #000;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 h1 { font-size: 1.2rem; }
 h2 { font-size: 1.1rem; }
 p { font-size: 0.9rem; color: var(--text-secondary); }
 
-/* Layout */
+/* Main Layout */
 .app-container {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr;
+    /* flex: 1 ensures it fills available space, pushing footer down */
+    flex: 1 0 auto; 
+    display: flex;
+    flex-direction: column; /* Stack vertically on mobile */
     gap: var(--spacing);
     padding: var(--spacing);
-    overflow: hidden; /* Prevent body scroll, handle inside panels */
+    width: 100%;
+    max-width: 1200px; /* Prevent it from getting too wide on desktop */
+    margin: 0 auto;
 }
 
-@media (min-width: 768px) {
-    .app-container {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
+/* Right column container */
 .right-column {
     display: flex;
     flex-direction: column;
     gap: var(--spacing);
-    overflow: hidden;
+    flex: 1;
 }
 
+/* Panels */
 .panel {
     background-color: var(--panel-bg);
     border-radius: var(--border-radius);
     padding: var(--spacing);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    max-height: 100%;
-}
-
-.library-panel, .playlist-panel {
-    flex: 1;
-    min-height: 300px;
+    /* Removed fixed heights and overflow hidden to allow natural page scrolling */
+    height: auto; 
 }
 
 .panel-header {
@@ -92,15 +96,15 @@ p { font-size: 0.9rem; color: var(--text-secondary); }
 ul { list-style: none; }
 
 .track-list, .playlist-nav {
-    overflow-y: auto;
-    flex: 1;
+    /* Let the list expand naturally */
+    flex: 1; 
 }
 
 .track-item, .playlist-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
+    padding: 12px 10px; /* Slightly larger tap target for mobile */
     border-bottom: 1px solid #333;
     cursor: pointer;
     transition: background 0.2s;
@@ -116,10 +120,14 @@ ul { list-style: none; }
 
 .track-info {
     flex: 1;
+    overflow: hidden;
+    margin-right: 10px;
+}
+/* Ensure text wraps on small screens instead of breaking layout */
+.track-info div {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 10px;
 }
 
 .track-meta {
@@ -135,7 +143,7 @@ ul { list-style: none; }
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: bold;
-    transition: transform 0.1s;
+    white-space: nowrap;
 }
 
 .btn:active { transform: scale(0.95); }
@@ -143,6 +151,9 @@ ul { list-style: none; }
 .primary-btn {
     background-color: var(--accent);
     color: #000;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .secondary-btn {
@@ -155,8 +166,8 @@ ul { list-style: none; }
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 1.1rem;
-    padding: 5px;
+    font-size: 1.2rem;
+    padding: 8px; /* Larger hit area */
 }
 
 .icon-btn:hover { color: #fff; }
@@ -166,8 +177,6 @@ ul { list-style: none; }
 .playlist-container {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    overflow: hidden;
 }
 
 .hidden { display: none !important; }
@@ -179,12 +188,15 @@ ul { list-style: none; }
     padding-bottom: 10px;
     border-bottom: 1px solid #333;
     margin-bottom: 10px;
+    flex-wrap: wrap; /* Allow wrapping on very small screens */
+    gap: 5px;
 }
 
 /* Player */
 .player-panel {
-    flex: 0 0 auto;
-    min-height: auto;
+    /* Keep player together */
+    display: flex;
+    flex-direction: column;
 }
 
 .now-playing-info {
@@ -206,21 +218,34 @@ ul { list-style: none; }
 audio {
     width: 100%;
     margin-bottom: 10px;
-    /* Customizing audio player is limited in CSS, relying on browser dark mode */
 }
 
 .player-controls-extra {
     display: flex;
     justify-content: center;
     gap: 20px;
+    padding-bottom: 5px;
 }
 
 .ctrl-btn {
     background: none;
     border: none;
     color: var(--text-primary);
-    font-size: 2rem;
+    font-size: 2.5rem; /* Larger controls for touch */
     cursor: pointer;
+}
+
+/* Footer */
+footer {
+    padding: 15px;
+    /* Critical for iPhone: Add padding for the home indicator */
+    padding-bottom: calc(15px + var(--safe-bottom)); 
+    text-align: center;
+    font-size: 0.8rem;
+    color: #555;
+    background: #000;
+    flex-shrink: 0; /* Never shrink footer */
+    margin-top: auto; /* Pushes footer to bottom if content is short */
 }
 
 /* Modal */
@@ -232,29 +257,36 @@ audio {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 20px;
 }
 
 .modal {
     background: var(--panel-bg);
     padding: 20px;
     border-radius: 8px;
-    width: 90%;
+    width: 100%;
     max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .modal h3 { margin-bottom: 15px; }
 
 #modal-playlist-list li {
-    padding: 10px;
+    padding: 15px 10px;
     border-bottom: 1px solid #333;
     cursor: pointer;
 }
 #modal-playlist-list li:hover { background: #333; }
 
-footer {
-    padding: 10px;
-    text-align: center;
-    font-size: 0.8rem;
-    color: #555;
-    background: #000;
+/* Desktop Layout */
+@media (min-width: 768px) {
+    .app-container {
+        flex-direction: row; /* Side-by-side */
+        align-items: flex-start; /* Align top, let height be natural */
+    }
+    
+    .library-panel {
+        flex: 1; /* Take 50% roughly */
+    }
 }
