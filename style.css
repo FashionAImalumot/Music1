@@ -21,7 +21,6 @@
 
 html {
     height: 100%;
-    /* Prevent horizontal scroll on mobile */
     overflow-x: hidden; 
 }
 
@@ -29,26 +28,22 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-primary);
-    
-    /* Layout Essentials */
-    min-height: 100%; /* Allows body to grow with content */
+    min-height: 100%;
     display: flex;
     flex-direction: column;
-    
-    /* iOS Scroll Fixes */
-    -webkit-overflow-scrolling: touch; /* Momentum scrolling */
-    overscroll-behavior-y: auto; /* Allow elastic bounce */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
 }
 
 /* Header */
 header {
     background-color: #000;
     padding: var(--spacing);
-    padding-top: max(var(--spacing), var(--safe-top)); /* Handle Notch */
+    padding-top: max(var(--spacing), var(--safe-top));
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* Never shrink */
+    flex-shrink: 0;
     z-index: 10;
 }
 
@@ -58,19 +53,17 @@ p { font-size: 0.9rem; color: var(--text-secondary); }
 
 /* MAIN CONTENT CONTAINER */
 .main {
-    flex: 1; /* Take remaining space */
-    min-height: 0; /* Fix flexbox overflow bugs */
+    flex: 1;
+    min-height: 0;
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
     padding: var(--spacing);
-    
     display: flex;
     flex-direction: column;
     gap: var(--spacing);
 }
 
-/* Right Column (Playlists + Player) */
 .right-column {
     display: flex;
     flex-direction: column;
@@ -78,14 +71,13 @@ p { font-size: 0.9rem; color: var(--text-secondary); }
     flex: 1;
 }
 
-/* Panels */
 .panel {
     background-color: var(--panel-bg);
     border-radius: var(--border-radius);
     padding: var(--spacing);
     display: flex;
     flex-direction: column;
-    height: auto; /* Let content dictate height */
+    height: auto;
 }
 
 .panel-header {
@@ -101,48 +93,65 @@ p { font-size: 0.9rem; color: var(--text-secondary); }
     margin-bottom: 8px;
 }
 
-/* Scrollable Lists */
+/* Lists */
 ul { list-style: none; }
 
 .track-list, .playlist-nav {
     flex: 1;
-    /* Ensure internal scrolling works if specific panels get height constrained */
     -webkit-overflow-scrolling: touch; 
 }
 
-.track-item, .playlist-item {
+/* Track Items - Updated Layout */
+.track-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 10px; /* Larger touch target */
+    padding: 14px 10px;
     border-bottom: 1px solid #333;
-    cursor: pointer;
     transition: background 0.2s;
+    cursor: default; /* Action logic is now on buttons mainly */
 }
 
 .track-item:hover, .playlist-item:hover {
     background-color: #2a2a2a;
 }
 
-.track-item.active {
-    color: var(--accent);
-}
-
-.track-info {
+.track-main {
     flex: 1;
     overflow: hidden;
     margin-right: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-.track-info div {
+.track-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 1rem;
+    color: var(--text-primary);
 }
 
 .track-meta {
     font-size: 0.8rem;
     color: var(--text-secondary);
+}
+
+.playlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+/* Action Buttons Container */
+.track-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 /* Buttons */
@@ -176,12 +185,30 @@ ul { list-style: none; }
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 1.25rem;
-    padding: 8px;
+    padding: 6px;
+    border-radius: 50%;
+    transition: background 0.2s, color 0.2s;
 }
-.icon-btn:hover { color: #fff; }
-.icon-btn.danger:hover { color: var(--danger); }
 
-/* Playlist View */
+.icon-btn:hover { 
+    color: #fff; 
+    background-color: rgba(255,255,255,0.1);
+}
+
+.icon-btn.play-btn:hover {
+    color: var(--accent);
+}
+
+/* Delete Button Styles */
+.delete-btn {
+    color: #ff4f4f;
+}
+.delete-btn:hover {
+    background: rgba(255, 79, 79, 0.2);
+    color: #ff6b6b;
+}
+
+/* Playlist Controls */
 .playlist-container {
     display: flex;
     flex-direction: column;
@@ -247,16 +274,12 @@ audio {
 /* Footer */
 .footer {
     padding: 20px;
-    /* Pushes footer to bottom if content is short */
     margin-top: auto; 
-    
     text-align: center;
     font-size: 0.8rem;
     color: #555;
     background: #000;
     flex-shrink: 0;
-    
-    /* iPhone Home Indicator Support */
     padding-bottom: calc(20px + var(--safe-bottom));
 }
 
@@ -264,13 +287,13 @@ audio {
 #modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85); /* Darker backdrop */
+    background: rgba(0,0,0,0.85); 
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     padding: 20px;
-    -webkit-backdrop-filter: blur(5px); /* iOS glass effect */
+    -webkit-backdrop-filter: blur(5px);
 }
 
 .modal {
