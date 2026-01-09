@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+    <meta name="description" content="Advanced Offline Music Player PWA">
+    <title>Offline Music Player</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+    <header>
+        <h1>Offline Music Player</h1>
+        <p>Your local library, everywhere.</p>
+    </header>
+
+    <main class="app-container">
+        
+        <!-- Left Column: Library & Upload -->
+        <section class="panel library-panel">
+            <div class="panel-header">
+                <h2>Library</h2>
+                <label for="file-upload" class="btn primary-btn">
+                    + Upload Tracks
+                    <input type="file" id="file-upload" accept="audio/*" multiple hidden>
+                </label>
+            </div>
+            <div class="storage-hint">Tracks are stored permanently in your browser.</div>
+            <ul id="library-list" class="track-list">
+                <!-- Tracks injected here -->
+            </ul>
+        </section>
+
+        <!-- Right Column: Playlists & Player -->
+        <div class="right-column">
+            
+            <!-- Playlists Section -->
+            <section class="panel playlist-panel">
+                <div class="panel-header">
+                    <h2>Playlists</h2>
+                    <button id="btn-create-playlist" class="btn secondary-btn">New Playlist</button>
+                </div>
+                
+                <div class="playlist-container">
+                    <!-- List of Playlists -->
+                    <ul id="playlist-list" class="playlist-nav">
+                        <!-- Playlists injected here -->
+                    </ul>
+
+                    <!-- Active Playlist View -->
+                    <div id="active-playlist-view" class="hidden">
+                        <div class="playlist-controls">
+                            <h3 id="current-playlist-name">Playlist Name</h3>
+                            <div class="actions">
+                                <button id="btn-play-playlist" class="icon-btn" title="Play All">▶</button>
+                                <button id="btn-rename-playlist" class="icon-btn" title="Rename">✎</button>
+                                <button id="btn-delete-playlist" class="icon-btn danger" title="Delete">🗑</button>
+                                <button id="btn-close-playlist" class="icon-btn" title="Close">✕</button>
+                            </div>
+                        </div>
+                        <ul id="playlist-track-list" class="track-list">
+                            <!-- Playlist tracks injected here -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Player Section -->
+            <section class="panel player-panel">
+                <div class="now-playing-info">
+                    <div id="np-title" class="track-title">Select a track</div>
+                    <div id="np-artist" class="track-artist">--</div>
+                </div>
+
+                <canvas id="visualizer" width="600" height="100"></canvas>
+
+                <audio id="audio-element" controls></audio>
+                
+                <div class="player-controls-extra">
+                    <button id="btn-prev" class="ctrl-btn">⏮</button>
+                    <button id="btn-next" class="ctrl-btn">⏭</button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer>
+        <p>Install this app for full offline support.</p>
+    </footer>
+
+    <!-- Overlay for "Add to Playlist" Modal -->
+    <div id="modal-overlay" class="hidden">
+        <div class="modal">
+            <h3>Add to Playlist</h3>
+            <ul id="modal-playlist-list"></ul>
+            <button id="btn-close-modal" class="btn secondary-btn">Cancel</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.error('SW Registration failed', err));
+        }
+    </script>
+</body>
+</html>

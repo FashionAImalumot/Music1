@@ -1,0 +1,260 @@
+:root {
+    --bg-color: #121212;
+    --panel-bg: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --accent: #1db954;
+    --accent-hover: #1ed760;
+    --danger: #e91e63;
+    --border-radius: 8px;
+    --spacing: 16px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    padding: var(--spacing);
+    background-color: #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 { font-size: 1.2rem; }
+h2 { font-size: 1.1rem; }
+p { font-size: 0.9rem; color: var(--text-secondary); }
+
+/* Layout */
+.app-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing);
+    padding: var(--spacing);
+    overflow: hidden; /* Prevent body scroll, handle inside panels */
+}
+
+@media (min-width: 768px) {
+    .app-container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    overflow: hidden;
+}
+
+.panel {
+    background-color: var(--panel-bg);
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 100%;
+}
+
+.library-panel, .playlist-panel {
+    flex: 1;
+    min-height: 300px;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing);
+}
+
+.storage-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* Lists */
+ul { list-style: none; }
+
+.track-list, .playlist-nav {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.track-item, .playlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.track-item:hover, .playlist-item:hover {
+    background-color: #2a2a2a;
+}
+
+.track-item.active {
+    color: var(--accent);
+}
+
+.track-info {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
+}
+
+.track-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Controls & Buttons */
+.btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: transform 0.1s;
+}
+
+.btn:active { transform: scale(0.95); }
+
+.primary-btn {
+    background-color: var(--accent);
+    color: #000;
+}
+
+.secondary-btn {
+    background-color: #333;
+    color: #fff;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 5px;
+}
+
+.icon-btn:hover { color: #fff; }
+.icon-btn.danger:hover { color: var(--danger); }
+
+/* Playlist View */
+.playlist-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.hidden { display: none !important; }
+
+.playlist-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 10px;
+}
+
+/* Player */
+.player-panel {
+    flex: 0 0 auto;
+    min-height: auto;
+}
+
+.now-playing-info {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.track-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 4px; }
+.track-artist { color: var(--text-secondary); font-size: 0.9rem; }
+
+#visualizer {
+    width: 100%;
+    height: 80px;
+    background: #000;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+audio {
+    width: 100%;
+    margin-bottom: 10px;
+    /* Customizing audio player is limited in CSS, relying on browser dark mode */
+}
+
+.player-controls-extra {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.ctrl-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+/* Modal */
+#modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: var(--panel-bg);
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.modal h3 { margin-bottom: 15px; }
+
+#modal-playlist-list li {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+#modal-playlist-list li:hover { background: #333; }
+
+footer {
+    padding: 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #555;
+    background: #000;
+}
